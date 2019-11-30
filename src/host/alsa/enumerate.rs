@@ -4,6 +4,7 @@ use super::alsa;
 use super::check_errors;
 use std::ffi::CString;
 use std::ptr;
+use std::convert::TryInto;
 
 /// ALSA implementation for `Devices`.
 pub struct Devices {
@@ -111,8 +112,8 @@ impl Iterator for Devices {
                 let has_available_output = alsa::snd_pcm_open(
                     &mut playback_handle,
                     name_zeroed.as_ptr() as *const _,
-                    alsa::SND_PCM_STREAM_PLAYBACK,
-                    alsa::SND_PCM_NONBLOCK,
+                    alsa::_snd_pcm_stream_SND_PCM_STREAM_PLAYBACK,
+                    alsa::SND_PCM_NONBLOCK.try_into().unwrap(),
                 ) == 0;
                 if has_available_output {
                     alsa::snd_pcm_close(playback_handle);
@@ -123,8 +124,8 @@ impl Iterator for Devices {
                 let has_available_input = alsa::snd_pcm_open(
                     &mut capture_handle,
                     name_zeroed.as_ptr() as *const _,
-                    alsa::SND_PCM_STREAM_CAPTURE,
-                    alsa::SND_PCM_NONBLOCK,
+                    alsa::_snd_pcm_stream_SND_PCM_STREAM_CAPTURE,
+                    alsa::SND_PCM_NONBLOCK.try_into().unwrap(),
                 ) == 0;
                 if has_available_input {
                     alsa::snd_pcm_close(capture_handle);

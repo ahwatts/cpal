@@ -23,6 +23,7 @@ use UnknownTypeInputBuffer;
 use UnknownTypeOutputBuffer;
 use traits::{DeviceTrait, EventLoopTrait, HostTrait, StreamIdTrait};
 
+use std::convert::TryInto;
 use std::{cmp, ffi, ptr};
 use std::sync::Mutex;
 use std::sync::mpsc::{channel, Sender, Receiver};
@@ -207,7 +208,7 @@ impl Device {
             &mut handle,
             device_name.as_ptr() as *const _,
             stream_t,
-            alsa::SND_PCM_NONBLOCK,
+            alsa::SND_PCM_NONBLOCK.try_into().unwrap(),
         ) {
             -2 |
             -16 /* determined empirically */ => return Err(SupportedFormatsError::DeviceNotAvailable),
@@ -232,9 +233,9 @@ impl Device {
             [
                 //SND_PCM_FORMAT_S8,
                 //SND_PCM_FORMAT_U8,
-                (SampleFormat::I16, alsa::SND_PCM_FORMAT_S16_LE),
+                (SampleFormat::I16, alsa::_snd_pcm_format_SND_PCM_FORMAT_S16_LE),
                 //SND_PCM_FORMAT_S16_BE,
-                (SampleFormat::U16, alsa::SND_PCM_FORMAT_U16_LE),
+                (SampleFormat::U16, alsa::_snd_pcm_format_SND_PCM_FORMAT_U16_LE),
                 //SND_PCM_FORMAT_U16_BE,
             /*SND_PCM_FORMAT_S24_LE,
             SND_PCM_FORMAT_S24_BE,
@@ -244,7 +245,7 @@ impl Device {
             SND_PCM_FORMAT_S32_BE,
             SND_PCM_FORMAT_U32_LE,
             SND_PCM_FORMAT_U32_BE,*/
-                (SampleFormat::F32, alsa::SND_PCM_FORMAT_FLOAT_LE) /*SND_PCM_FORMAT_FLOAT_BE,
+                (SampleFormat::F32, alsa::_snd_pcm_format_SND_PCM_FORMAT_FLOAT_LE) /*SND_PCM_FORMAT_FLOAT_BE,
             SND_PCM_FORMAT_FLOAT64_LE,
             SND_PCM_FORMAT_FLOAT64_BE,
             SND_PCM_FORMAT_IEC958_SUBFRAME_LE,
@@ -390,13 +391,13 @@ impl Device {
 
     fn supported_input_formats(&self) -> Result<SupportedInputFormats, SupportedFormatsError> {
         unsafe {
-            self.supported_formats(alsa::SND_PCM_STREAM_CAPTURE)
+            self.supported_formats(alsa::_snd_pcm_stream_SND_PCM_STREAM_CAPTURE)
         }
     }
 
     fn supported_output_formats(&self) -> Result<SupportedOutputFormats, SupportedFormatsError> {
         unsafe {
-            self.supported_formats(alsa::SND_PCM_STREAM_PLAYBACK)
+            self.supported_formats(alsa::_snd_pcm_stream_SND_PCM_STREAM_PLAYBACK)
         }
     }
 
@@ -442,11 +443,11 @@ impl Device {
     }
 
     fn default_input_format(&self) -> Result<Format, DefaultFormatError> {
-        self.default_format(alsa::SND_PCM_STREAM_CAPTURE)
+        self.default_format(alsa::_snd_pcm_stream_SND_PCM_STREAM_CAPTURE)
     }
 
     fn default_output_format(&self) -> Result<Format, DefaultFormatError> {
-        self.default_format(alsa::SND_PCM_STREAM_PLAYBACK)
+        self.default_format(alsa::_snd_pcm_stream_SND_PCM_STREAM_PLAYBACK)
     }
 }
 
@@ -519,6 +520,7 @@ struct StreamInner {
 
     // A file descriptor opened with `eventfd`.
     // It is used to wait for resume signal.
+    #[allow(dead_code)]
     resume_trigger: Trigger,
 
     // Lazily allocated buffer that is reused inside the loop.
@@ -759,8 +761,8 @@ impl EventLoop {
             match alsa::snd_pcm_open(
                 &mut capture_handle,
                 name.as_ptr(),
-                alsa::SND_PCM_STREAM_CAPTURE,
-                alsa::SND_PCM_NONBLOCK,
+                alsa::_snd_pcm_stream_SND_PCM_STREAM_CAPTURE,
+                alsa::SND_PCM_NONBLOCK.try_into().unwrap(),
             ) {
                 -16 /* determined empirically */ => return Err(BuildStreamError::DeviceNotAvailable),
                 -22 => return Err(BuildStreamError::InvalidArgument),
@@ -838,8 +840,8 @@ impl EventLoop {
             match alsa::snd_pcm_open(
                 &mut playback_handle,
                 name.as_ptr(),
-                alsa::SND_PCM_STREAM_PLAYBACK,
-                alsa::SND_PCM_NONBLOCK,
+                alsa::_snd_pcm_stream_SND_PCM_STREAM_PLAYBACK,
+                alsa::SND_PCM_NONBLOCK.try_into().unwrap(),
             ) {
                 -16 /* determined empirically */ => return Err(BuildStreamError::DeviceNotAvailable),
                 -22 => return Err(BuildStreamError::InvalidArgument),
@@ -1076,21 +1078,21 @@ unsafe fn set_hw_params_from_format(
     }
     if let Err(e) = check_errors(alsa::snd_pcm_hw_params_set_access(pcm_handle,
                                                     hw_params.0,
-                                                    alsa::SND_PCM_ACCESS_RW_INTERLEAVED)) {
+                                                    alsa::_snd_pcm_access_SND_PCM_ACCESS_RW_INTERLEAVED)) {
         return Err(format!("handle not acessible: {}", e));
     }
 
     let data_type = if cfg!(target_endian = "big") {
         match format.data_type {
-            SampleFormat::I16 => alsa::SND_PCM_FORMAT_S16_BE,
-            SampleFormat::U16 => alsa::SND_PCM_FORMAT_U16_BE,
-            SampleFormat::F32 => alsa::SND_PCM_FORMAT_FLOAT_BE,
+            SampleFormat::I16 => alsa::_snd_pcm_format_SND_PCM_FORMAT_S16_BE,
+            SampleFormat::U16 => alsa::_snd_pcm_format_SND_PCM_FORMAT_U16_BE,
+            SampleFormat::F32 => alsa::_snd_pcm_format_SND_PCM_FORMAT_FLOAT_BE,
         }
     } else {
         match format.data_type {
-            SampleFormat::I16 => alsa::SND_PCM_FORMAT_S16_LE,
-            SampleFormat::U16 => alsa::SND_PCM_FORMAT_U16_LE,
-            SampleFormat::F32 => alsa::SND_PCM_FORMAT_FLOAT_LE,
+            SampleFormat::I16 => alsa::_snd_pcm_format_SND_PCM_FORMAT_S16_LE,
+            SampleFormat::U16 => alsa::_snd_pcm_format_SND_PCM_FORMAT_U16_LE,
+            SampleFormat::F32 => alsa::_snd_pcm_format_SND_PCM_FORMAT_FLOAT_LE,
         }
     };
 

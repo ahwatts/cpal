@@ -26,7 +26,7 @@ winapi = { version = "0.3", features = ["audiosessiontypes", "audioclient", "com
 asio-sys = { version = "0.1", path = "asio-sys", optional = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "openbsd"))'.dependencies]
-alsa-sys = { version = "0.1", path = "alsa-sys" }
+alsa-sys = { version = "0.1", path = "../alsa-sys" }
 libc = "0.2"
 
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
